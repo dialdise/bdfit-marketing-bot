@@ -1,33 +1,28 @@
 """
-Entry point — start the BDFit Marketing Bot Dashboard.
-Usage: python run.py
+Entry point — BDFit Marketing Bot Dashboard.
+Works locally (reads .env) and on Railway/Render (reads env vars directly).
 """
 
 import os
 import sys
-import subprocess
 from pathlib import Path
 
-def main():
-    # Check for .env
-    env_path = Path(__file__).parent / ".env"
-    if not env_path.exists():
-        example = Path(__file__).parent / ".env.example"
-        print("⚠️  No .env file found.")
-        print(f"   Copy .env.example to .env and add your ANTHROPIC_API_KEY:")
-        print(f"   cp .env.example .env")
-        print(f"   Then edit .env and set your API key.")
-        sys.exit(1)
-
-    # Check API key
+# Load .env only if it exists (local dev). Cloud platforms inject vars directly.
+env_path = Path(__file__).parent / ".env"
+if env_path.exists():
     from dotenv import load_dotenv
     load_dotenv()
+
+def main():
     if not os.getenv("ANTHROPIC_API_KEY"):
-        print("⚠️  ANTHROPIC_API_KEY not set in .env")
+        print("⚠️  ANTHROPIC_API_KEY is not set.")
+        print("   Local: add it to your .env file")
+        print("   Railway: add it in the Variables tab of your service")
         sys.exit(1)
 
     host = os.getenv("APP_HOST", "0.0.0.0")
-    port = int(os.getenv("APP_PORT", 8000))
+    # Railway injects PORT; fall back to APP_PORT then 8000
+    port = int(os.getenv("PORT") or os.getenv("APP_PORT") or 8000)
 
     print(f"""
 ╔══════════════════════════════════════════════════════╗
@@ -37,7 +32,7 @@ def main():
 ║  Agent 1 — News Scout    → runs daily at 9:00 AM    ║
 ║  Agent 2 — Content Creator → triggers on approval   ║
 ╠══════════════════════════════════════════════════════╣
-║  Dashboard → http://localhost:{port:<22} ║
+║  Dashboard → http://0.0.0.0:{port:<24} ║
 ╚══════════════════════════════════════════════════════╝
 """)
 

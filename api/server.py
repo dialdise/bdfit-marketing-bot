@@ -25,10 +25,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from agents.news_agent import run_news_agent
 from agents.content_agent import generate_content
 
-load_dotenv()
+# Load .env only if it exists (local dev). Cloud platforms inject vars directly.
+_env = Path(__file__).parent.parent / ".env"
+if _env.exists():
+    load_dotenv(_env)
 
 BASE_DIR = Path(__file__).parent.parent
-DB_PATH = BASE_DIR / "data" / "bdfit.db"
+# On Railway, /data may not be writable; use /tmp as fallback
+_data_dir = BASE_DIR / "data"
+_data_dir.mkdir(exist_ok=True)
+DB_PATH = _data_dir / "bdfit.db"
 DASHBOARD_DIR = BASE_DIR / "dashboard"
 
 API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
