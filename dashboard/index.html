@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BDFit — Marketing Bot Dashboard</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0a0a0f;
+      --surface:  #12121a;
+      --card:     #1a1a28;
+      --border:   #2a2a3f;
+      --accent:   #7c5cfc;
+      --accent2:  #fc5c7d;
+      --accent3:  #5cfc8f;
+      --gold:     #ffd700;
+      --text:     #e8e8f0;
+      --muted:    #6b6b8a;
+      --ig:       #e1306c;
+      --yt:       #ff0000;
+      --tt:       #69c9d0;
+      --approve:  #22c55e;
+      --reject:   #ef4444;
+      --pending:  #f59e0b;
+      --radius:   14px;
+      --shadow:   0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1a1a28 0%, #0f0f1a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text p {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.3);
+      color: var(--approve);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--approve);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .clock { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .trigger-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .trigger-btn:hover { opacity: 0.85; }
+    .trigger-btn:active { transform: scale(0.97); }
+    .trigger-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Layout ── */
+    .app { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 72px); }
+
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .main {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── Agent Cards (sidebar) ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .agent-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      transition: border-color 0.2s;
+    }
+
+    .agent-card.active { border-color: var(--accent); }
+    .agent-card.running { border-color: var(--pending); animation: glow-pending 1.5s ease-in-out infinite; }
+    .agent-card.error { border-color: var(--reject); }
+
+    @keyframes glow-pending {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+      50% { box-shadow: 0 0 12px 2px rgba(245,158,11,0.25); }
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .agent-info { display: flex; align-items: center; gap: 10px; }
+    .agent-emoji { font-size: 22px; }
+    .agent-name { font-size: 14px; font-weight: 600; }
+    .agent-role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .status-pill {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .status-idle    { background: rgba(107,107,138,0.2); color: var(--muted); }
+    .status-running { background: rgba(245,158,11,0.2); color: var(--pending); }
+    .status-error   { background: rgba(239,68,68,0.2); color: var(--reject); }
+    .status-done    { background: rgba(34,197,94,0.2); color: var(--approve); }
+
+    .agent-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-item { background: var(--surface); border-radius: 8px; padding: 8px 10px; }
+    .stat-value { font-size: 18px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    .agent-meta { font-size: 11px; color: var(--muted); margin-top: 10px; }
+    .agent-meta span { color: var(--text); }
+
+    /* ── Progress Bar ── */
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.4s ease;
+    }
+    .progress-fill.animated {
+      animation: progress-anim 1.5s ease-in-out infinite;
+    }
+    @keyframes progress-anim {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+
+    .badge {
+      background: var(--accent);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+    .badge.green { background: var(--approve); }
+    .badge.orange { background: var(--pending); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── News Feed ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .news-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      transition: border-color 0.2s, transform 0.2s;
+      cursor: pointer;
+    }
+    .news-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .news-source {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .news-title {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .news-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .news-relevance {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--approve);
+    }
+
+    .news-why {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.4;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .relevance-bar {
+      display: flex;
+      gap: 2px;
+    }
+    .relevance-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .relevance-dot.filled { background: var(--approve); }
+
+    /* ── Ideas Grid ── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn.active, .filter-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,92,252,0.1); }
+    .filter-btn.ig.active { border-color: var(--ig); color: var(--ig); background: rgba(225,48,108,0.1); }
+    .filter-btn.yt.active { border-color: var(--yt); color: var(--yt); background: rgba(255,0,0,0.1); }
+    .filter-btn.tt.active { border-color: var(--tt); color: var(--tt); background: rgba(105,201,208,0.1); }
+
+    .ideas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+
+    .idea-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      transition: border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .idea-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .idea-card.ig::before { background: linear-gradient(90deg, #833ab4, var(--ig), #f77737); }
+    .idea-card.yt::before { background: var(--yt); }
+    .idea-card.tt::before { background: linear-gradient(90deg, var(--tt), #ff0050); }
+
+    .idea-card.approved { border-color: var(--approve); }
+    .idea-card.rejected { border-color: var(--reject); opacity: 0.7; }
+
+    .idea-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .platform-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .platform-badge.ig { background: rgba(225,48,108,0.15); color: var(--ig); }
+    .platform-badge.yt { background: rgba(255,0,0,0.12); color: var(--yt); }
+    .platform-badge.tt { background: rgba(105,201,208,0.15); color: var(--tt); }
+
+    .format-tag {
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--surface);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .idea-title {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .idea-hook {
+      font-size: 12px;
+      color: var(--accent);
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+
+    .idea-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .idea-trend {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--gold);
+      background: rgba(255,215,0,0.08);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin-bottom: 12px;
+    }
+
+    .reach-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .reach-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .reach-high { background: var(--approve); }
+    .reach-medium { background: var(--pending); }
+    .reach-low { background: var(--muted); }
+
+    .hashtags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .hashtag {
+      font-size: 10px;
+      color: var(--accent);
+      background: rgba(124,92,252,0.1);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .idea-actions { display: flex; gap: 8px; }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .approve-btn {
+      background: rgba(34,197,94,0.15);
+      color: var(--approve);
+      border: 1px solid rgba(34,197,94,0.3);
+    }
+    .approve-btn:hover { background: rgba(34,197,94,0.25); }
+
+    .reject-btn {
+      background: rgba(239,68,68,0.12);
+      color: var(--reject);
+      border: 1px solid rgba(239,68,68,0.25);
+    }
+    .reject-btn:hover { background: rgba(239,68,68,0.22); }
+
+    .status-stamp {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-stamp.approved { background: rgba(34,197,94,0.1); color: var(--approve); }
+    .status-stamp.rejected { background: rgba(239,68,68,0.1); color: var(--reject); }
+
+    .rejection-reason {
+      font-size: 11px;
+      color: var(--reject);
+      background: rgba(239,68,68,0.07);
+      border-left: 2px solid var(--reject);
+      padding: 6px 10px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 8px;
+    }
+
+    /* ── Reject Modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      width: 440px;
+      max-width: 95vw;
+      box-shadow: var(--shadow);
+    }
+
+    .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .modal p { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+
+    .modal-idea-title {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      border-left: 3px solid var(--reject);
+    }
+
+    .modal textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 12px;
+      resize: vertical;
+      min-height: 100px;
+      font-family: inherit;
+      margin-bottom: 16px;
+    }
+    .modal textarea:focus { outline: none; border-color: var(--accent); }
+
+    .modal-actions { display: flex; gap: 10px; }
+
+    .modal-cancel {
+      flex: 1;
+      padding: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .modal-confirm {
+      flex: 1;
+      padding: 10px;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid var(--reject);
+      border-radius: 8px;
+      color: var(--reject);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ── Generated Content ── */
+    .content-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 18px;
+    }
+
+    .content-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .content-card-header {
+      padding: 14px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .content-card-body { padding: 18px; }
+
+    .content-section {
+      margin-bottom: 16px;
+    }
+
+    .content-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .content-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .script-block {
+      background: var(--surface);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .script-row {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+    }
+    .script-row:last-child { border-bottom: none; }
+
+    .script-cell {
+      padding: 8px 10px;
+      border-right: 1px solid var(--border);
+    }
+    .script-cell:last-child { border-right: none; }
+    .script-cell.time { color: var(--accent); font-weight: 700; font-family: monospace; }
+    .script-cell.visual { color: var(--muted); }
+    .script-cell.voice { color: var(--text); }
+
+    .script-header { display: grid; grid-template-columns: 70px 1fr 1fr; background: rgba(124,92,252,0.1); }
+
+    .copy-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .accordion-toggle {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0;
+    }
+
+    .accordion-body { display: none; margin-top: 12px; }
+    .accordion-body.open { display: block; }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; max-width: 400px; margin: 0 auto; }
+
+    /* ── Toast ── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      max-width: 320px;
+      box-shadow: var(--shadow);
+      animation: toast-in 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.success { border-left: 3px solid var(--approve); }
+    .toast.error { border-left: 3px solid var(--reject); }
+    .toast.info { border-left: 3px solid var(--accent); }
+
+    @keyframes toast-in {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ── Loading Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--card) 25%, var(--surface) 50%, var(--card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Pulse animation for running agent ── */
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+
+    .stat-card-value { font-size: 28px; font-weight: 800; }
+    .stat-card-label { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .stat-card-value.accent { color: var(--accent); }
+    .stat-card-value.approve { color: var(--approve); }
+    .stat-card-value.pending { color: var(--pending); }
+    .stat-card-value.reject { color: var(--reject); }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .ideas-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────── -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🏃</div>
+    <div class="logo-text">
+      <h1>BDFit Marketing Bot</h1>
+      <p>@bdfitindahouse · Bruno Diaz</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot" id="wsStatus"></div>
+      <span id="wsLabel">LIVE</span>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+    <button class="trigger-btn" id="triggerNewsBtn" onclick="triggerNewsAgent()">
+      <span id="triggerIcon">▶</span> Run News Agent
+    </button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- ── Sidebar ──────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="section-label">Active Agents</div>
+
+    <!-- Agent 1 -->
+    <div class="agent-card" id="newsAgentCard">
+      <div class="agent-header">
+        <div class="agent-info">
+          <div class="agent-emoji">📰</div>
+          <div>
+            <div class="agent-name">News Scout</div>
+            <div class="agent-role">Agent 1 · Daily 9:00 AM</div>
+          </div>
+        </div>
+        <div class="status-pill status-idle" id="newsAgentStatus">Idle</div>
+      </div>
+      <div class="agent-stats">
+        <div class="stat-item">
+          <div class="stat-value" id="newsCount">0</div>
+          <div class="stat-label">Articles Today</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="ideasCount">0</div>
+          <div class="stat-label">Ideas Generated</div>
+        </div>
+      </div>
+      <div class="agent-meta" id="newsAgentMeta">
+        Next run: <span id="nextRunTime">—</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="newsProgress" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Agent 2 -->
+    <div class="agent-card" id="contentAgentCard">
+      <div class="agent-header">
+        <div class="agent-info">
+          <div class="agent-emoji">✍️</div>
+          <div>
+            <div class="agent-name">Content Creator</div>
+            <div class="agent-role">Agent 2 · On Approval</div>
+          </div>
+        </div>
+        <div class="status-pill status-idle" id="contentAgentStatus">Idle</div>
+      </div>
+      <div class="agent-stats">
+        <div class="stat-item">
+          <div class="stat-value" id="approvedCount">0</div>
+          <div class="stat-label">Approved</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="contentDoneCount">0</div>
+          <div class="stat-label">Content Ready</div>
+        </div>
+      </div>
+      <div class="agent-meta">
+        Last run: <span id="contentLastRun">—</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="contentProgress" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="section-label" style="margin-top:8px">Queue Summary</div>
+    <div class="agent-card">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:13px; color:var(--muted)">⏳ Pending Review</span>
+          <span style="font-weight:700; color:var(--pending)" id="sidebarPending">0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:13px; color:var(--muted)">✅ Approved</span>
+          <span style="font-weight:700; color:var(--approve)" id="sidebarApproved">0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:13px; color:var(--muted)">❌ Rejected</span>
+          <span style="font-weight:700; color:var(--reject)" id="sidebarRejected">0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:13px; color:var(--muted)">📦 Content Ready</span>
+          <span style="font-weight:700; color:var(--accent)" id="sidebarContent">0</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-value accent" id="totalIdeas">0</div>
+        <div class="stat-card-label">Total Ideas Generated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value approve" id="totalApproved">0</div>
+        <div class="stat-card-label">Ideas Approved</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value pending" id="totalPending">0</div>
+        <div class="stat-card-label">Awaiting Review</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-value reject" id="totalContent">0</div>
+        <div class="stat-card-label">Content Packages Ready</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('news', this)">
+        📰 News Feed <span class="badge orange" id="newsTabBadge">0</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('ideas', this)">
+        💡 Content Ideas <span class="badge" id="ideasTabBadge">0</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('content', this)">
+        🎬 Generated Content <span class="badge green" id="contentTabBadge">0</span>
+      </button>
+    </div>
+
+    <!-- Tab: News Feed -->
+    <div class="tab-panel active" id="tab-news">
+      <div class="section-header">
+        <div class="section-title">📰 Today's Filtered News</div>
+        <span style="font-size:12px; color:var(--muted)">Auto-filtered for running & fitness relevance</span>
+      </div>
+      <div class="news-grid" id="newsFeed">
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="icon">📰</div>
+          <h3>No news yet</h3>
+          <p>Click "Run News Agent" to fetch and filter today's running & fitness news tailored to @bdfitindahouse.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Content Ideas -->
+    <div class="tab-panel" id="tab-ideas">
+      <div class="section-header">
+        <div class="section-title">💡 Content Ideas Queue</div>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterIdeas('all', this)">All</button>
+        <button class="filter-btn" onclick="filterIdeas('pending', this)">⏳ Pending</button>
+        <button class="filter-btn ig" onclick="filterIdeas('instagram', this)">📸 Instagram</button>
+        <button class="filter-btn yt" onclick="filterIdeas('youtube', this)">▶ YouTube</button>
+        <button class="filter-btn tt" onclick="filterIdeas('tiktok', this)">🎵 TikTok</button>
+        <button class="filter-btn" onclick="filterIdeas('approved', this)">✅ Approved</button>
+        <button class="filter-btn" onclick="filterIdeas('rejected', this)">❌ Rejected</button>
+      </div>
+      <div class="ideas-grid" id="ideasGrid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="icon">💡</div>
+          <h3>No ideas yet</h3>
+          <p>Run the News Agent to generate content ideas for Instagram, YouTube, and TikTok based on today's trends.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Generated Content -->
+    <div class="tab-panel" id="tab-content">
+      <div class="section-header">
+        <div class="section-title">🎬 Generated Content Packages</div>
+        <span style="font-size:12px; color:var(--muted)">Auto-generated by Agent 2 on approval</span>
+      </div>
+      <div class="content-grid" id="contentGrid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="icon">🎬</div>
+          <h3>No content yet</h3>
+          <p>Approve content ideas to trigger Agent 2 and generate full scripts, captions, and production guides.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Reject Modal ──────────────────────────────── -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal">
+    <h3>❌ Reject Idea</h3>
+    <p>Provide a reason so we can avoid this in future generations.</p>
+    <div class="modal-idea-title" id="rejectModalTitle"></div>
+    <textarea id="rejectReason" placeholder="e.g. Too similar to last week's content, brand voice doesn't match, topic too generic..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeRejectModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmReject()">Reject Idea</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast Container ───────────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  news: [],
+  ideas: [],
+  content: [],
+  ideaFilter: 'all',
+  rejectingId: null,
+  rejectingTitle: null,
+};
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+let ws = null;
+let wsReconnectTimer = null;
+
+function connectWS() {
+  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${protocol}://${location.host}/ws`);
+
+  ws.onopen = () => {
+    setWSStatus(true);
+    clearTimeout(wsReconnectTimer);
+  };
+
+  ws.onmessage = ({ data }) => {
+    const msg = JSON.parse(data);
+    handleServerEvent(msg.event, msg.data);
+  };
+
+  ws.onclose = () => {
+    setWSStatus(false);
+    wsReconnectTimer = setTimeout(connectWS, 3000);
+  };
+}
+
+function setWSStatus(connected) {
+  const dot = document.getElementById('wsStatus');
+  const label = document.getElementById('wsLabel');
+  dot.style.background = connected ? 'var(--approve)' : 'var(--reject)';
+  label.textContent = connected ? 'LIVE' : 'OFFLINE';
+}
+
+function handleServerEvent(event, data) {
+  switch (event) {
+    case 'connected':
+      updateAgentUI(data.agents);
+      loadAll();
+      break;
+    case 'agent_update':
+      updateAgentUI(data);
+      break;
+    case 'news_complete':
+      toast('📰 News agent complete! ' + (data.content_ideas?.length || 0) + ' ideas generated.', 'success');
+      loadAll();
+      break;
+    case 'content_ready':
+      toast('✍️ Content package ready for: ' + (data.content?.title || 'an idea'), 'success');
+      loadContent();
+      switchTab('content', null);
+      break;
+    case 'idea_reviewed':
+      loadIdeas();
+      break;
+    case 'agent_error':
+      toast('⚠️ Agent error: ' + data.error, 'error');
+      break;
+  }
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  return res.json();
+}
+
+async function loadAll() {
+  await Promise.all([loadNews(), loadIdeas(), loadContent()]);
+}
+
+async function loadNews() {
+  const data = await api('/api/news');
+  state.news = data.articles || [];
+  renderNews();
+}
+
+async function loadIdeas() {
+  const data = await api('/api/ideas');
+  state.ideas = data.ideas || [];
+  renderIdeas();
+  updateStats();
+}
+
+async function loadContent() {
+  const data = await api('/api/content');
+  state.content = data.content || [];
+  renderContent();
+  updateStats();
+}
+
+// ── Trigger Agent ──────────────────────────────────────────────────────────
+async function triggerNewsAgent() {
+  const btn = document.getElementById('triggerNewsBtn');
+  btn.disabled = true;
+  document.getElementById('triggerIcon').textContent = '⟳';
+  document.getElementById('triggerIcon').className = 'spin';
+
+  try {
+    await api('/api/agents/news/trigger', { method: 'POST' });
+    toast('🚀 News Agent triggered! Fetching & filtering news...', 'info');
+  } catch (e) {
+    toast('Failed to trigger agent', 'error');
+    btn.disabled = false;
+    document.getElementById('triggerIcon').textContent = '▶';
+    document.getElementById('triggerIcon').className = '';
+  }
+}
+
+// ── Agent UI Updates ───────────────────────────────────────────────────────
+function updateAgentUI(agents) {
+  if (!agents) return;
+
+  const na = agents.news_agent;
+  const ca = agents.content_agent;
+
+  if (na) {
+    const card = document.getElementById('newsAgentCard');
+    const pill = document.getElementById('newsAgentStatus');
+    card.className = 'agent-card ' + (na.status === 'running' ? 'running' : na.status === 'error' ? 'error' : '');
+    pill.className = 'status-pill status-' + (na.status === 'idle' ? 'idle' : na.status === 'running' ? 'running' : 'error');
+    pill.textContent = na.status.charAt(0).toUpperCase() + na.status.slice(1);
+
+    const prog = document.getElementById('newsProgress');
+    if (na.status === 'running') {
+      prog.className = 'progress-fill animated';
+      prog.style.width = '30%';
+    } else {
+      prog.className = 'progress-fill';
+      prog.style.width = '0%';
+      const btn = document.getElementById('triggerNewsBtn');
+      btn.disabled = false;
+      document.getElementById('triggerIcon').textContent = '▶';
+      document.getElementById('triggerIcon').className = '';
+    }
+
+    if (na.next_run) {
+      const d = new Date(na.next_run);
+      document.getElementById('nextRunTime').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    document.getElementById('newsCount').textContent = na.runs_today || 0;
+  }
+
+  if (ca) {
+    const card = document.getElementById('contentAgentCard');
+    const pill = document.getElementById('contentAgentStatus');
+    card.className = 'agent-card ' + (ca.status === 'running' ? 'running' : ca.status === 'error' ? 'error' : '');
+    pill.className = 'status-pill status-' + (ca.status === 'idle' ? 'idle' : ca.status === 'running' ? 'running' : 'error');
+    pill.textContent = ca.status.charAt(0).toUpperCase() + ca.status.slice(1);
+
+    const prog = document.getElementById('contentProgress');
+    if (ca.status === 'running') {
+      prog.className = 'progress-fill animated';
+      prog.style.width = '30%';
+    } else {
+      prog.className = 'progress-fill';
+      prog.style.width = '0%';
+    }
+
+    if (ca.last_run) {
+      const d = new Date(ca.last_run);
+      document.getElementById('contentLastRun').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    document.getElementById('contentDoneCount').textContent = ca.completed_today || 0;
+  }
+}
+
+// ── Render: News ───────────────────────────────────────────────────────────
+function renderNews() {
+  const el = document.getElementById('newsFeed');
+  document.getElementById('newsTabBadge').textContent = state.news.length;
+  document.getElementById('newsCount').textContent = state.news.length;
+
+  if (!state.news.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">📰</div><h3>No news yet</h3>
+      <p>Click "Run News Agent" to fetch and filter today's running & fitness news.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = state.news.map(a => {
+    const score = parseInt(a.relevance_score) || 5;
+    const dots = Array.from({ length: 10 }, (_, i) =>
+      `<div class="relevance-dot ${i < score ? 'filled' : ''}"></div>`
+    ).join('');
+    return `
+    <a href="${a.link || '#'}" target="_blank" rel="noopener" style="text-decoration:none">
+      <div class="news-card">
+        <div class="news-source">${a.source || 'News'}</div>
+        <div class="news-title">${a.title || 'Untitled'}</div>
+        <div class="news-meta">
+          <div class="news-relevance">
+            <div class="relevance-bar">${dots}</div>
+            ${score}/10
+          </div>
+          <span style="font-size:11px;color:var(--muted)">${formatDate(a.published)}</span>
+        </div>
+        ${a.why_it_matters ? `<div class="news-why">💡 ${a.why_it_matters}</div>` : ''}
+      </div>
+    </a>`;
+  }).join('');
+}
+
+// ── Render: Ideas ──────────────────────────────────────────────────────────
+function renderIdeas() {
+  const el = document.getElementById('ideasGrid');
+  let filtered = state.ideas;
+  const f = state.ideaFilter;
+
+  if (f === 'pending') filtered = filtered.filter(i => i.status === 'pending');
+  else if (f === 'approved') filtered = filtered.filter(i => i.status === 'approved');
+  else if (f === 'rejected') filtered = filtered.filter(i => i.status === 'rejected');
+  else if (['instagram','youtube','tiktok'].includes(f)) filtered = filtered.filter(i => i.platform === f);
+
+  document.getElementById('ideasTabBadge').textContent = state.ideas.filter(i => i.status === 'pending').length;
+  document.getElementById('ideasCount').textContent = state.ideas.length;
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">💡</div><h3>No ideas in this view</h3>
+      <p>Try a different filter or run the News Agent to generate ideas.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(idea => {
+    const plClass = idea.platform || 'ig';
+    const plLabel = { instagram: '📸 Instagram', youtube: '▶ YouTube', tiktok: '🎵 TikTok' }[idea.platform] || idea.platform;
+    const tags = Array.isArray(idea.hashtags) ? idea.hashtags : [];
+    const reachColor = { high: 'reach-high', medium: 'reach-medium', low: 'reach-low' }[idea.estimated_reach] || 'reach-medium';
+
+    let actionsHTML = '';
+    if (idea.status === 'pending') {
+      actionsHTML = `
+        <div class="idea-actions">
+          <button class="action-btn approve-btn" onclick="approveIdea('${idea.id}')">✅ Approve</button>
+          <button class="action-btn reject-btn" onclick="openRejectModal('${idea.id}', \`${(idea.title||'').replace(/`/g,'')}\`)">❌ Reject</button>
+        </div>`;
+    } else if (idea.status === 'approved') {
+      actionsHTML = `
+        <div class="status-stamp approved">✅ Approved — Content Generating</div>`;
+    } else if (idea.status === 'rejected') {
+      actionsHTML = `
+        <div class="status-stamp rejected">❌ Rejected</div>
+        ${idea.rejection_reason ? `<div class="rejection-reason">📝 Reason: ${idea.rejection_reason}</div>` : ''}`;
+    }
+
+    return `
+    <div class="idea-card ${idea.platform || ''}">
+      <div class="idea-top">
+        <span class="platform-badge ${plClass}">${plLabel}</span>
+        <span class="format-tag">${idea.format || 'post'}</span>
+      </div>
+      <div class="idea-title">${idea.title || 'Untitled'}</div>
+      ${idea.hook ? `<div class="idea-hook">"${idea.hook}"</div>` : ''}
+      <div class="idea-desc">${idea.description || ''}</div>
+      ${idea.trend_connection ? `<div class="idea-trend">🔥 ${idea.trend_connection}</div>` : ''}
+      <div class="reach-indicator">
+        <div class="reach-dot ${reachColor}"></div>
+        ${idea.estimated_reach || 'medium'} estimated reach
+      </div>
+      ${tags.length ? `<div class="hashtags">${tags.slice(0,5).map(t=>`<span class="hashtag">${t}</span>`).join('')}</div>` : ''}
+      ${actionsHTML}
+    </div>`;
+  }).join('');
+}
+
+// ── Render: Generated Content ──────────────────────────────────────────────
+function renderContent() {
+  const el = document.getElementById('contentGrid');
+  document.getElementById('contentTabBadge').textContent = state.content.length;
+  document.getElementById('totalContent').textContent = state.content.length;
+  document.getElementById('contentDoneCount').textContent = state.content.length;
+
+  if (!state.content.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">🎬</div><h3>No content yet</h3>
+      <p>Approve content ideas to trigger Agent 2 and generate full scripts and production guides.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = state.content.map(item => {
+    const c = item.content || {};
+    const platform = item.platform || c.platform || '';
+    const fmt = item.format || c.format || '';
+    const plLabel = { instagram: '📸 Instagram', youtube: '▶ YouTube', tiktok: '🎵 TikTok' }[platform] || platform;
+
+    let bodyHTML = renderContentBody(c, platform, fmt);
+
+    return `
+    <div class="content-card">
+      <div class="content-card-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="platform-badge ${platform}">${plLabel}</span>
+          <span class="format-tag">${fmt}</span>
+        </div>
+        <button class="copy-btn" onclick="copyContent('${item.id}')">📋 Copy All</button>
+      </div>
+      <div class="content-card-body" id="content-${item.id}">
+        <div style="font-size:14px; font-weight:700; margin-bottom:14px;">${item.idea_title || c.title || 'Content Package'}</div>
+        ${bodyHTML}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderContentBody(c, platform, fmt) {
+  let html = '';
+
+  // Hook
+  if (c.hook_text || c.hook_voiceover || c.hook) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🎯 Hook</div>
+      ${c.hook_text ? `<div class="content-text"><strong>On-screen:</strong> ${c.hook_text}</div>` : ''}
+      ${c.hook_voiceover ? `<div class="content-text" style="margin-top:4px;"><strong>Voiceover:</strong> "${c.hook_voiceover}"</div>` : ''}
+      ${c.hook && !c.hook_text ? `<div class="content-text">${c.hook}</div>` : ''}
+    </div>`;
+  }
+
+  // Script (Reel / TikTok)
+  if (c.script && Array.isArray(c.script)) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🎬 Script</div>
+      <div class="script-block">
+        <div class="script-row script-header">
+          <div class="script-cell" style="font-weight:700;font-size:10px;text-transform:uppercase;color:var(--muted)">Time</div>
+          <div class="script-cell" style="font-weight:700;font-size:10px;text-transform:uppercase;color:var(--muted)">Visual</div>
+          <div class="script-cell" style="font-weight:700;font-size:10px;text-transform:uppercase;color:var(--muted)">Voiceover</div>
+        </div>
+        ${c.script.map(s => `
+          <div class="script-row">
+            <div class="script-cell time">${s.second || s.timestamp || ''}</div>
+            <div class="script-cell visual">${s.visual || s.b_roll || ''}</div>
+            <div class="script-cell voice">${s.voiceover || s.content || ''}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // YouTube outline
+  if (c.outline && Array.isArray(c.outline)) {
+    html += `<div class="content-section">
+      <div class="content-section-label">📋 Video Outline</div>
+      <div class="script-block">
+        ${c.outline.map(s => `
+          <div class="script-row">
+            <div class="script-cell time">${s.timestamp || ''}</div>
+            <div class="script-cell visual">${s.section || ''}</div>
+            <div class="script-cell voice">${s.content || ''}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Carousel slides
+  if (c.slides && Array.isArray(c.slides)) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🖼 Carousel Slides</div>
+      ${c.slides.map(s => `
+        <div style="background:var(--surface);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+          <span style="font-size:10px;color:var(--accent);font-weight:700">Slide ${s.slide}</span>
+          <div style="font-size:13px;font-weight:600;margin-top:2px;">${s.headline || ''}</div>
+          ${s.subtext ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${s.subtext}</div>` : ''}
+          ${s.visual_direction ? `<div style="font-size:11px;color:var(--accent2);margin-top:4px;">📷 ${s.visual_direction}</div>` : ''}
+        </div>`).join('')}
+    </div>`;
+  }
+
+  // Caption
+  if (c.caption) {
+    html += `<div class="content-section">
+      <div class="content-section-label">✍️ Caption</div>
+      <div class="content-text" style="white-space:pre-line;background:var(--surface);padding:12px;border-radius:8px;font-size:12px;">${c.caption}</div>
+    </div>`;
+  }
+
+  // Thumbnail (YouTube)
+  if (c.thumbnail_concept) {
+    const t = c.thumbnail_concept;
+    html += `<div class="content-section">
+      <div class="content-section-label">🖼 Thumbnail Concept</div>
+      <div style="background:var(--surface);border-radius:8px;padding:12px;font-size:12px;">
+        <div><strong>Text:</strong> ${t.text_overlay || ''}</div>
+        <div style="margin-top:4px;"><strong>Visual:</strong> ${t.visual || ''}</div>
+        <div style="margin-top:4px;"><strong>Colors:</strong> ${t.color_scheme || ''}</div>
+      </div>
+    </div>`;
+  }
+
+  // Audio
+  if (c.audio_suggestion) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🎵 Audio Suggestion</div>
+      <div class="content-text">${c.audio_suggestion}</div>
+    </div>`;
+  }
+
+  // Trending technique
+  if (c.trending_technique) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🔥 Trending Technique</div>
+      <div style="background:rgba(255,215,0,0.07);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--gold);">${c.trending_technique}</div>
+    </div>`;
+  }
+
+  // CTA
+  if (c.cta) {
+    html += `<div class="content-section">
+      <div class="content-section-label">📣 Call to Action</div>
+      <div class="content-text" style="color:var(--accent);">${c.cta}</div>
+    </div>`;
+  }
+
+  // Hashtags
+  const tags = c.hashtags || [];
+  if (tags.length) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🏷 Hashtags</div>
+      <div class="hashtags">${tags.map(t=>`<span class="hashtag">${t}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // Filming tips
+  const tips = c.filming_tips || [];
+  if (tips.length) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🎥 Filming Tips</div>
+      ${tips.map(t => `<div style="font-size:12px;padding:4px 0;color:var(--muted);">→ ${t}</div>`).join('')}
+    </div>`;
+  }
+
+  // Viral potential (TikTok)
+  if (c.viral_potential_reason) {
+    html += `<div class="content-section">
+      <div class="content-section-label">🚀 Viral Potential</div>
+      <div style="font-size:12px;color:var(--tt);">${c.viral_potential_reason}</div>
+    </div>`;
+  }
+
+  return html || '<div class="content-text" style="color:var(--muted)">Content package loading...</div>';
+}
+
+// ── Review Actions ──────────────────────────────────────────────────────────
+async function approveIdea(id) {
+  await api(`/api/ideas/${id}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'approve' }),
+  });
+  toast('✅ Idea approved! Agent 2 is generating content...', 'success');
+  loadIdeas();
+}
+
+function openRejectModal(id, title) {
+  state.rejectingId = id;
+  state.rejectingTitle = title;
+  document.getElementById('rejectModalTitle').textContent = title;
+  document.getElementById('rejectReason').value = '';
+  document.getElementById('rejectModal').classList.add('open');
+}
+
+function closeRejectModal() {
+  document.getElementById('rejectModal').classList.remove('open');
+  state.rejectingId = null;
+}
+
+async function confirmReject() {
+  const reason = document.getElementById('rejectReason').value.trim();
+  if (!reason) {
+    document.getElementById('rejectReason').style.borderColor = 'var(--reject)';
+    return;
+  }
+  await api(`/api/ideas/${state.rejectingId}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'reject', rejection_reason: reason }),
+  });
+  toast('❌ Idea rejected with feedback saved.', 'info');
+  closeRejectModal();
+  loadIdeas();
+}
+
+// ── Filters ────────────────────────────────────────────────────────────────
+function filterIdeas(filter, btn) {
+  state.ideaFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderIdeas();
+}
+
+// ── Tab Switching ──────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name)?.classList.add('active');
+  if (btn) btn?.classList.add('active');
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+function updateStats() {
+  const ideas = state.ideas;
+  const pending = ideas.filter(i => i.status === 'pending').length;
+  const approved = ideas.filter(i => i.status === 'approved').length;
+  const rejected = ideas.filter(i => i.status === 'rejected').length;
+  const content = state.content.length;
+
+  document.getElementById('totalIdeas').textContent = ideas.length;
+  document.getElementById('totalApproved').textContent = approved;
+  document.getElementById('totalPending').textContent = pending;
+  document.getElementById('approvedCount').textContent = approved;
+
+  document.getElementById('sidebarPending').textContent = pending;
+  document.getElementById('sidebarApproved').textContent = approved;
+  document.getElementById('sidebarRejected').textContent = rejected;
+  document.getElementById('sidebarContent').textContent = content;
+}
+
+// ── Copy ───────────────────────────────────────────────────────────────────
+function copyContent(id) {
+  const el = document.getElementById('content-' + id);
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).then(() => toast('📋 Content copied!', 'success'));
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── Clock ──────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function formatDate(d) {
+  if (!d) return '';
+  try {
+    return new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  } catch { return d; }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+connectWS();
+loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "profile": {
+    "handle": "bdfitindahouse",
+    "name": "Bruno Diaz",
+    "niche": ["running", "fitness", "lifestyle", "health", "motivation"],
+    "platforms": ["instagram", "youtube", "tiktok"],
+    "tone": "energetic, motivational, community-driven, authentic",
+    "audience": "fitness enthusiasts, runners, people on transformation journeys",
+    "keywords": ["running", "marathon", "fitness", "workout", "healthylifestyle", "runner", "trainhard", "motivation", "cardio", "raceday", "5k", "10k", "halfmarathon", "personalrecord", "fitlife"]
+  },
+  "news_sources": [
+    {"name": "Runner's World", "rss": "https://www.runnersworld.com/rss/all.xml", "category": "running"},
+    {"name": "Outside Online", "rss": "https://www.outsideonline.com/feeds/", "category": "fitness"},
+    {"name": "Healthline Fitness", "rss": "https://www.healthline.com/rss/health-news", "category": "health"},
+    {"name": "Men's Health", "rss": "https://www.menshealth.com/rss/all.xml/", "category": "fitness"},
+    {"name": "Women's Running", "rss": "https://www.womensrunning.com/feed/", "category": "running"}
+  ]
+}
